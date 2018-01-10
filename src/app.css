@@ -10,3 +10,7 @@
 .barStyle{
     width: 200%;
 }
+
+.my-gallery-class{
+    box-sizing: border-box
+}

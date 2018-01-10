@@ -22,7 +22,7 @@ class Detail extends React.Component {
   }
   render() {
     var childElements = this.state.images.map((image, key) => {
-      let url = `download/${image}`;
+      let url = `${image}`;
       return (
         <li className="image-element-class">
           <img src={url} key={key} />

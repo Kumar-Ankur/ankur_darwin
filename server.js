@@ -34,7 +34,7 @@ app.use(
 );
 
 function compressImage(keyword, path) {
-  imagemin([path + '/*.*'], "public/images/" + keyword, {
+  imagemin([path + "/*.*"], "public/images/" + keyword, {
     plugins: [imageminJpegtran(), imageminPngquant({ quality: "65-80" })]
   }).then(files => {
     console.log(files);
@@ -78,7 +78,7 @@ app.get("/search", function(req, res) {
           "/" +
           filename +
           "." +
-          (res.headers["content-type"] || 'image/jpeg').split("/")[1];
+          (res.headers["content-type"] || "image/jpeg").split("/")[1];
 
         res.pipe(fs.createWriteStream(file));
         callback(file);
@@ -150,7 +150,7 @@ app.get("/search", function(req, res) {
     .then(function(images) {
       console.log("first 15 results from google", images);
       var count = 0;
-      var paths = [];
+      var paths = [], downloadedImages = [];
       images.forEach(function(image, i) {
         if (!fs.existsSync("./temp")) {
           fs.mkdirSync("./temp");
@@ -161,11 +161,14 @@ app.get("/search", function(req, res) {
         try {
           getImage(image.url, i, folder, function(imagefile) {
             console.log("file downloaded at", imagefile);
-            paths.push(path);
+            if (imagefile) {
+              paths.push(imagefile.replace('./temp', 'images'));
+              downloadedImages.push(image);
+            }
             count++;
             if (count == images.length) {
               compressImage(keyword, folder);
-              insertInDBInSequence(images, paths, 0, keyword);
+              insertInDBInSequence(downloadedImages, paths, 0, keyword);
             }
           });
         } catch (error) {

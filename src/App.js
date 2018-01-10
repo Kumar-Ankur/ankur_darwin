@@ -13,9 +13,10 @@ class App extends React.Component {
   constructor(props) {
     super(props);
 
-    this.state = { value: "", data: "", scrape: [], loading : true};
+    this.state = { value: "", data: "", scrape: [], loading : false};
   }
   getResults() {
+    this.setState({loading : true})
     fetch(`http://localhost:3030/search?term=${this.state.value}`)
       .then(data => {
         return data.json();
@@ -45,11 +46,11 @@ class App extends React.Component {
           </Link>
           <ul className="navbar-nav mr-auto">
             <li className="nav-item active">
-              <li className="nav-link">
+              <span className="nav-link">
                 <Link to="/history">
-                  RECENT SEARCHES<span class="sr-only">(current)</span>
+                  RECENT SEARCHES<span className="sr-only">(current)</span>
                 </Link>
-              </li>
+              </span>
             </li>
           </ul>
           <form className="form-inline my-2 my-lg-0">
