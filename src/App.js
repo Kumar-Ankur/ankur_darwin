@@ -1,44 +1,102 @@
-import React from 'react';
-import Listing from './listing.js';
-import { Link }from 'react-router-dom';
+import React from "react";
+import Listing from "./listing.js";
+import { Link } from "react-router-dom";
+import "./app.css";
+import Masonry from "react-masonry-component";
+import { BarLoader } from 'react-spinners';
 
-class App extends React.Component{
-  constructor(props){
-    super(props)
+var masonryOptions = {
+  transitionDuration: 0
+};
 
-    this.state = {value : '', data : '', scrape : [],name : 'ankur'}
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = { value: "", data: "", scrape: [], loading : true};
   }
-  getResults(){
+  getResults() {
     fetch(`http://localhost:3030/search?term=${this.state.value}`)
-    .then(data => {
-      return data.json();
-    })
-    .then(data => {
-      this.setState({data: JSON.stringify(data)})
-      var images = data.map(image => {
-        return image.thumb_url;
+      .then(data => {
+        return data.json();
       })
-      this.setState({scrape : images})
-    })
-}
+      .then(data => {
+        this.setState({ data: JSON.stringify(data) });
+        var images = data.map(image => {
+          return image.thumb_url;
+        });
+        this.setState({ scrape: images , loading : false});
+      });
+  }
 
-  render(){
-    return(
+  render() {
+    var childElements = this.state.scrape.map((image, key) => {
+      return (
+        <li className="image-element-class">
+          <img src={image} key={key} />
+        </li>
+      );
+    });
+    return (
       <div>
-        <ul>
-          <li><Link to='/history'>Listing Page</Link></li>
-        </ul>
-      <input type="search" onChange={e => {this.setState({value : e.target.value})}}/>
+        <nav className="navbar navbar-toggleable-md navbar-light bg-faded navClass">
+          <Link to="/" className="navbar-brand">
+            Google Image
+          </Link>
+          <ul className="navbar-nav mr-auto">
+            <li className="nav-item active">
+              <li className="nav-link">
+                <Link to="/history">
+                  RECENT SEARCHES<span class="sr-only">(current)</span>
+                </Link>
+              </li>
+            </li>
+          </ul>
+          <form className="form-inline my-2 my-lg-0">
+            <input
+              className="form-control mr-sm-2"
+              type="search"
+              placeholder="Search"
+              onChange={e => {
+                this.setState({ value: e.target.value });
+              }}
+            />
+            <button
+              className="btn btn-outline-success my-2 my-sm-0"
+              type="submit"
+              onClick={this.getResults.bind(this)}
+            >
+              Search
+            </button>
+          </form>
+        </nav>
+        {/* <input type="search" onChange={e => {this.setState({value : e.target.value})}}/>
       
-      <button onClick={this.getResults.bind(this)}>Submit</button>
-      <div>
+      <button onClick={this.getResults.bind(this)}>Submit</button> */}
+        {/* <div>
         {this.state.scrape.map((image,key) =>{
-          return <img src= {image} key={key}/>
+          return <img className="img-rounded imgStyle" src= {image} key={key}/>
         })}
 
+      </div> */}
+
+        <BarLoader
+          color={'#123abc'} 
+          width={1500} 
+          loading={this.state.loading} 
+        />
+
+        <Masonry
+          className={"my-gallery-class"} // default ''
+          elementType={"ul"} // default 'div'
+          options={masonryOptions} // default {}
+          disableImagesLoaded={false} // default false
+          updateOnEachImageLoad={false} // default false and works only if disableImagesLoaded is false
+        >
+          {childElements}
+        </Masonry>
       </div>
-      </div>
-    )
+    );
   }
 }
 

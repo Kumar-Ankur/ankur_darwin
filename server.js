@@ -7,6 +7,9 @@ const MongoClient = require("mongodb").MongoClient;
 const test = require("assert");
 const url = "mongodb://root:root@ds241677.mlab.com:41677/ankur_darwin";
 const dbName = "ankur_darwin";
+const imagemin = require("imagemin");
+const imageminJpegtran = require("imagemin-jpegtran");
+const imageminPngquant = require("imagemin-pngquant");
 
 let imagesCollection = undefined;
 MongoClient.connect(url, function(err, client) {
@@ -30,6 +33,15 @@ app.use(
   })
 );
 
+function compressImage(keyword, path) {
+  imagemin([path + '/*.*'], "public/images/" + keyword, {
+    plugins: [imageminJpegtran(), imageminPngquant({ quality: "65-80" })]
+  }).then(files => {
+    console.log(files);
+    //=> [{data: <Buffer 89 50 4e …>, path: 'build/images/foo.jpg'}, …]
+  });
+}
+
 app.use(function(req, res, next) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
@@ -47,17 +59,33 @@ app.use(function(req, res, next) {
 app.get("/search", function(req, res) {
   // console.log();
   function getImage(url, filename, folder, callback) {
-    if (!fs.existsSync(folder)) {
-      fs.mkdirSync(folder);
-    }
+    try {
+      if (!fs.existsSync(folder)) {
+        fs.mkdirSync(folder);
+      }
 
-    request({
-      uri: url
-    })
-      .pipe(fs.createWriteStream(folder + "/" + filename))
-      .on("close", function() {
+      var req = request({
+        uri: url,
+        timeout: 15000
+      });
+      req.on("error", function(err) {
+        console.log(err);
         callback();
       });
+      req.on("response", function(res) {
+        var file =
+          folder +
+          "/" +
+          filename +
+          "." +
+          (res.headers["content-type"] || 'image/jpeg').split("/")[1];
+
+        res.pipe(fs.createWriteStream(file));
+        callback(file);
+      });
+    } catch (error) {
+      console.log(error);
+    }
   }
   function insertInDBInSequence(arr, paths, pos, keyword) {
     var obj = arr[pos];
@@ -124,20 +152,25 @@ app.get("/search", function(req, res) {
       var count = 0;
       var paths = [];
       images.forEach(function(image, i) {
-        if (!fs.existsSync("./public/download")) {
-          fs.mkdirSync("./public/download");
+        if (!fs.existsSync("./temp")) {
+          fs.mkdirSync("./temp");
         }
         // var extension = image.url.replace(new RegExp("/", "_")).split(".");
-        var folder = "./public/download/" + keyword;
+        var folder = "./temp/" + keyword;
         var path = keyword + "/" + i;
-        getImage(image.url, i, folder, function() {
-          console.log("file downloaded at", path);
-          paths.push(path);
-          count++;
-          if (count == images.length) {
-            insertInDBInSequence(images, paths, 0, keyword);
-          }
-        });
+        try {
+          getImage(image.url, i, folder, function(imagefile) {
+            console.log("file downloaded at", imagefile);
+            paths.push(path);
+            count++;
+            if (count == images.length) {
+              compressImage(keyword, folder);
+              insertInDBInSequence(images, paths, 0, keyword);
+            }
+          });
+        } catch (error) {
+          console.log(error);
+        }
       });
       res.json(images);
       res.end();
@@ -152,38 +185,41 @@ app.get("/search", function(req, res) {
   });
 });
 
-app.get('/history', function (req, res) {
-  imagesCollection.distinct('keyword', {}, function (err, data) {
+app.get("/history", function(req, res) {
+  imagesCollection.distinct("keyword", {}, function(err, data) {
     if (err) {
       res.json({
-        success: false,
-      })
-      res.status(500)
-      res.end()
-    }else{
-      res.json(data)
-      res.end()
+        success: false
+      });
+      res.status(500);
+      res.end();
+    } else {
+      res.json(data);
+      res.end();
     }
-  })
-})
+  });
+});
 
-app.get('/detail/:search_term', function (req, res) {
+app.get("/detail/:search_term", function(req, res) {
   var keyword = req.params.search_term;
-  imagesCollection.findOne({
-    keyword: keyword
-  }, function (err, data) {
-    if (err) {
-      res.json({
-        success: false,
-      })
-      res.status(500)
-      res.end()
-    }else{
-      res.json(data)
-      res.end()
+  imagesCollection.findOne(
+    {
+      keyword: keyword
+    },
+    function(err, data) {
+      if (err) {
+        res.json({
+          success: false
+        });
+        res.status(500);
+        res.end();
+      } else {
+        res.json(data);
+        res.end();
+      }
     }
-  })
-})
+  );
+});
 
 app.listen(3030, function() {
   console.log("Server is running successfully at port 3030");

@@ -17,12 +17,30 @@ class Listing extends React.Component {
   render() {
     return (
       <div>
-        <ul>
+        <nav className="navbar navbar-toggleable-md navbar-light bg-faded navClass">
+          <Link to="/" className="navbar-brand">
+            Google Image
+          </Link>
+          <ul className="navbar-nav mr-auto">
+            <li className="nav-item active">
+              <li className="nav-link">
+                <Link to="/">
+                  HOME<span class="sr-only">(current)</span>
+                </Link>
+              </li>
+            </li>
+          </ul>
+          <span className="badge badge-info">
+            CLICK ANY TAG TO RENDER DETAIL SCREEN
+          </span>
+        </nav>
+
+        <ul className="list-group">
           {this.state.history.map((image, key) => {
-            let url = `/detail/${image}`
+            let url = `/detail/${image}`;
             return (
-              <li key={key}>
-                <Link to={url}>{image} </Link>
+              <li className="list-group-item linkStyle" key={key}>
+                <Link to={url}>.{image} </Link>
               </li>
             );
           })}

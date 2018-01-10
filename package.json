@@ -4,11 +4,16 @@
   "private": true,
   "dependencies": {
     "body-parser": "^1.18.2",
+    "imagemin": "^5.3.1",
+    "imagemin-jpegtran": "^5.0.2",
+    "imagemin-pngquant": "^5.0.1",
     "images-scraper": "^2.0.11",
     "mongodb": "^3.0.1",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
+    "react-masonry-component": "^6.0.2",
     "react-router-dom": "^4.2.2",
+    "react-spinners": "^0.2.5",
     "request": "^2.83.0"
   },
   "devDependencies": {
