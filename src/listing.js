@@ -23,11 +23,11 @@ class Listing extends React.Component {
           </Link>
           <ul className="navbar-nav mr-auto">
             <li className="nav-item active">
-              <li className="nav-link">
+              <span className="nav-link">
                 <Link to="/">
-                  HOME<span class="sr-only">(current)</span>
+                  HOME<span className="sr-only">(current)</span>
                 </Link>
-              </li>
+              </span>
             </li>
           </ul>
           <span className="badge badge-info">
@@ -40,7 +40,7 @@ class Listing extends React.Component {
             let url = `/detail/${image}`;
             return (
               <li className="list-group-item linkStyle" key={key}>
-                <Link to={url}>.{image} </Link>
+                <Link to={url}>{image} </Link>
               </li>
             );
           })}

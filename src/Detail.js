@@ -1,3 +1,9 @@
+/**
+ * {Detail} React Component to display Detail Page
+ * @dependency {Masonry} Node module for Layout Display
+ * @function {getListing} Fetch images from MongoDB
+ */
+
 import React from "react";
 import { Link } from "react-router-dom";
 import Masonry from "react-masonry-component";
@@ -24,9 +30,16 @@ class Detail extends React.Component {
     var childElements = this.state.images.map((image, key) => {
       let url = `${image}`;
       return (
-        <li className="image-element-class">
-          <img src={url} key={key} />
-        </li>
+        // <li className="image-element-class">
+        //   <img src={url} key={key} />
+        // </li>
+        <div className="masonry-layout">
+        <div className="masonry-layout__panel">
+        <div className="masonry-layout__panel-content">
+          <img src={url} key={key} className="image-element-class"/>
+          </div>
+          </div>
+        </div>
       );
     });
     return (
@@ -45,6 +58,10 @@ class Detail extends React.Component {
               <li className="nav-link">
                 <Link to="/">
                   HOME<span class="sr-only">(current)</span>
+                </Link>
+                /
+                <Link to="/history">
+                  RECENT SEARCHES<span class="sr-only">(current)</span>
                 </Link>
               </li>
             </li>

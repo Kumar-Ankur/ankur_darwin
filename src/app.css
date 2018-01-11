@@ -12,5 +12,35 @@
 }
 
 .my-gallery-class{
-    box-sizing: border-box
+    display: flex;
+    overflow: hidden;
+    justify-content: space-around;
+}
+
+.image-element-class{
+    display: flex;
+    overflow: hidden;
+    justify-content: space-around;
+    border : 1px solid #e4e4e4;
+    height: 200px;
+    width: 200px;
+    margin-top: 20px;
+    margin-left: 10px;
+}
+
+.masonry-layout{
+    column-count: 5;
+    column-gap: 0;
+    display: inline-flex;
+    float: left
+}
+
+.masonry-layout__panel{
+    break-inside: avoid;
+    padding: 5px;
+}
+
+masonry-layout__panel-content{
+    padding: 10px;
+    border-radius: 10px;
 }

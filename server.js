@@ -1,3 +1,12 @@
+/**
+ * @created by Kumar Ankur - 09/01/18
+ * Creates Server page to scrape images from Google and start the backend server
+ * Each image is downloaded in local HDD if directory exits else create new directory
+ * Compress the images with imageminJpegtran & imageminPngquant node module
+ * Insert top 15 images into MongoDb with keyword
+ * @Express 4 - For Backend
+ */
+
 var express = require("express");
 var fs = require("fs");
 var path = require("path");
@@ -33,6 +42,12 @@ app.use(
   })
 );
 
+/**
+ * @function to compress the images
+ * @param {'String'} keyword Text Searched by User 
+ * @param {'String'} path to downloaded the image
+ */
+
 function compressImage(keyword, path) {
   imagemin([path + "/*.*"], "public/images/" + keyword, {
     plugins: [imageminJpegtran(), imageminPngquant({ quality: "65-80" })]
@@ -41,6 +56,11 @@ function compressImage(keyword, path) {
     //=> [{data: <Buffer 89 50 4e …>, path: 'build/images/foo.jpg'}, …]
   });
 }
+
+
+/**
+ * Function to prevent from Cross Origin Resource Sharing
+ */
 
 app.use(function(req, res, next) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -87,6 +107,15 @@ app.get("/search", function(req, res) {
       console.log(error);
     }
   }
+
+  /**
+   * @function To insert into database
+   * @param {array} arr Array where all the images are stored
+   * @param {String} paths  Source file where all the images are stored
+   * @param {integer} pos Flag to check which image is inserted into Mongo
+   * @param {String} keyword Text Searched by User
+   */
+
   function insertInDBInSequence(arr, paths, pos, keyword) {
     var obj = arr[pos];
     var path = paths[pos];
@@ -137,6 +166,9 @@ app.get("/search", function(req, res) {
       );
     }
   }
+
+  //Google Scrape image using images-scraper node module
+  
   var keyword = req.query.term || "banana";
   google
     .list({
@@ -159,7 +191,7 @@ app.get("/search", function(req, res) {
         var folder = "./temp/" + keyword;
         var path = keyword + "/" + i;
         try {
-          getImage(image.url, i, folder, function(imagefile) {
+          getImage(image.thumb_url, i, folder, function(imagefile) {
             console.log("file downloaded at", imagefile);
             if (imagefile) {
               paths.push(imagefile.replace('./temp', 'images'));

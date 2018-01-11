@@ -1,3 +1,11 @@
+/**
+ * {App} React Component to display Home Page
+ * @dependency {Masonry} Node module for Layout Display
+ * {React-Spinners} To show spinner when the data is rendered into GUI
+ * @function {getResults} Fetch images from MongoDB
+ */
+
+
 import React from "react";
 import Listing from "./listing.js";
 import { Link } from "react-router-dom";
@@ -33,9 +41,13 @@ class App extends React.Component {
   render() {
     var childElements = this.state.scrape.map((image, key) => {
       return (
-        <li className="image-element-class">
-          <img src={image} key={key} />
-        </li>
+        <div className="masonry-layout">
+        <div className="masonry-layout__panel">
+        <div className="masonry-layout__panel-content">
+          <img src={image} key={key} className="image-element-class"/>
+          </div>
+          </div>
+        </div>
       );
     });
     return (
