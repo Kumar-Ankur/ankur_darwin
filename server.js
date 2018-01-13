@@ -12,27 +12,33 @@ var fs = require("fs");
 var path = require("path");
 var request = require("request");
 var app = express();
+var morgan = require("morgan");
+const logger = require("./logger");
 const MongoClient = require("mongodb").MongoClient;
 const test = require("assert");
 const url = "mongodb://root:root@ds241677.mlab.com:41677/ankur_darwin";
 const dbName = "ankur_darwin";
-const imagemin = require("imagemin");
-const imageminJpegtran = require("imagemin-jpegtran");
-const imageminPngquant = require("imagemin-pngquant");
 
 let imagesCollection = undefined;
 MongoClient.connect(url, function(err, client) {
   // Use the admin database for the operation
   imagesCollection = client.db(dbName).collection("images");
-  imagesCollection.find({}).toArray(function(error, arr) {
-    console.log("data fetched successfully");
-    console.log(arr);
-  });
+  logger.info("DB initialized successfully");
 });
 
 var bodyParser = require("body-parser");
-var Scraper = require("images-scraper"),
-  google = new Scraper.Google();
+var Scraper = require("images-scraper");
+var google = new Scraper.Google();
+var imageGrayScale = require("image-grayscale");
+var globby = require("globby");
+
+// create a write stream (in append mode)
+var accessLogStream = fs.createWriteStream(path.join(__dirname, "./logs/access.log"), {
+  flags: "a"
+});
+
+// setup the logger
+app.use(morgan("combined", { stream: accessLogStream }));
 
 app.use("/static", express.static(path.join(__dirname, "public")));
 app.use(bodyParser.json());
@@ -44,19 +50,33 @@ app.use(
 
 /**
  * @function to compress the images
- * @param {'String'} keyword Text Searched by User 
+ * @param {'String'} keyword Text Searched by User
  * @param {'String'} path to downloaded the image
  */
 
-function compressImage(keyword, path) {
-  imagemin([path + "/*.*"], "public/images/" + keyword, {
-    plugins: [imageminJpegtran(), imageminPngquant({ quality: "65-80" })]
-  }).then(files => {
-    console.log(files);
-    //=> [{data: <Buffer 89 50 4e …>, path: 'build/images/foo.jpg'}, …]
+function compressImage(keyword, path, callback) {
+  logger.info("Compressing image in: " + path);
+
+  globby([path + "/*.*"]).then(function(paths) {
+    // all@once
+    paths.forEach(function(file) {
+      imageGrayScale(file, {
+        logProgress: true,
+        dist: 'public/images/',
+        lwip: {
+          jpg: {
+            quality: 70
+          },
+          png: {
+            compression: 'fast',
+            interlaced: false,
+            transparency: 'auto'
+          },
+        }
+      });
+    });
   });
 }
-
 
 /**
  * Function to prevent from Cross Origin Resource Sharing
@@ -77,8 +97,8 @@ app.use(function(req, res, next) {
 });
 
 app.get("/search", function(req, res) {
-  // console.log();
   function getImage(url, filename, folder, callback) {
+    logger.info("Fetching image from url: " + url);
     try {
       if (!fs.existsSync(folder)) {
         fs.mkdirSync(folder);
@@ -89,7 +109,7 @@ app.get("/search", function(req, res) {
         timeout: 15000
       });
       req.on("error", function(err) {
-        console.log(err);
+        logger.error(err);
         callback();
       });
       req.on("response", function(res) {
@@ -104,7 +124,7 @@ app.get("/search", function(req, res) {
         callback(file);
       });
     } catch (error) {
-      console.log(error);
+      logger.error(error);
     }
   }
 
@@ -126,9 +146,13 @@ app.get("/search", function(req, res) {
         },
         function(err, data) {
           if (err) {
+            logger.error(err);
             return;
           }
           if (!data) {
+            logger.info(
+              "trying to create entry in DB: " + keyword + ": " + path
+            );
             imagesCollection.insertOne(
               {
                 keyword: keyword,
@@ -136,9 +160,12 @@ app.get("/search", function(req, res) {
               },
               function(error, data) {
                 if (error) {
-                  console.log("error");
+                  logger.error("Failed to insert: " + error);
                   return;
                 }
+                logger.info(
+                  "Inserted in DB successfully: " + keyword + ": " + path
+                );
                 insertInDBInSequence(arr, paths, pos + 1, keyword);
               }
             );
@@ -155,9 +182,10 @@ app.get("/search", function(req, res) {
               },
               function(err, data) {
                 if (err) {
+                  logger.error("Failed to insert: " + err);
                   return;
                 }
-                console.log("hello");
+                logger.info("inserting in " + keyword + ": " + path);
                 insertInDBInSequence(arr, paths, pos + 1, keyword);
               }
             );
@@ -168,7 +196,7 @@ app.get("/search", function(req, res) {
   }
 
   //Google Scrape image using images-scraper node module
-  
+
   var keyword = req.query.term || "banana";
   google
     .list({
@@ -180,9 +208,10 @@ app.get("/search", function(req, res) {
       }
     })
     .then(function(images) {
-      console.log("first 15 results from google", images);
+      logger.info("first 15 results from google", images);
       var count = 0;
-      var paths = [], downloadedImages = [];
+      var paths = [],
+        downloadedImages = [];
       images.forEach(function(image, i) {
         if (!fs.existsSync("./temp")) {
           fs.mkdirSync("./temp");
@@ -192,9 +221,9 @@ app.get("/search", function(req, res) {
         var path = keyword + "/" + i;
         try {
           getImage(image.thumb_url, i, folder, function(imagefile) {
-            console.log("file downloaded at", imagefile);
+            logger.info("file downloaded at", imagefile);
             if (imagefile) {
-              paths.push(imagefile.replace('./temp', 'images'));
+              paths.push(imagefile.replace("./temp", "images"));
               downloadedImages.push(image);
             }
             count++;
@@ -204,25 +233,21 @@ app.get("/search", function(req, res) {
             }
           });
         } catch (error) {
-          console.log(error);
+          logger.error(error);
         }
       });
       res.json(images);
       res.end();
     })
     .catch(function(err) {
-      console.log("err", err);
+      logger.error(err);
     });
-
-  // you can also watch on events
-  google.on("result", function(item) {
-    console.log("out", item);
-  });
 });
 
 app.get("/history", function(req, res) {
   imagesCollection.distinct("keyword", {}, function(err, data) {
     if (err) {
+      logger.error(err);
       res.json({
         success: false
       });
@@ -243,6 +268,7 @@ app.get("/detail/:search_term", function(req, res) {
     },
     function(err, data) {
       if (err) {
+        logger.error(err);
         res.json({
           success: false
         });
@@ -257,7 +283,7 @@ app.get("/detail/:search_term", function(req, res) {
 });
 
 app.listen(3030, function() {
-  console.log("Server is running successfully at port 3030");
+  logger.info("Server is running successfully at port 3030");
 });
 
 module.exports = app;

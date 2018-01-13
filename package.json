@@ -4,17 +4,19 @@
   "private": true,
   "dependencies": {
     "body-parser": "^1.18.2",
-    "imagemin": "^5.3.1",
-    "imagemin-jpegtran": "^5.0.2",
-    "imagemin-pngquant": "^5.0.1",
+    "globby": "^7.1.1",
+    "image-grayscale": "^1.0.2",
     "images-scraper": "^2.0.11",
     "mongodb": "^3.0.1",
+    "morgan": "^1.9.0",
+    "pm2": "^2.9.1",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
     "react-masonry-component": "^6.0.2",
     "react-router-dom": "^4.2.2",
     "react-spinners": "^0.2.5",
-    "request": "^2.83.0"
+    "request": "^2.83.0",
+    "winston": "^3.0.0-rc1"
   },
   "devDependencies": {
     "react-scripts": "1.0.17"
@@ -24,6 +26,7 @@
     "backendstart": "node server.js",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "start": "pm2 start app_starter.js; pm2 start ./node_modules/react-scripts/bin/react-scripts.js -- start"
   }
 }
