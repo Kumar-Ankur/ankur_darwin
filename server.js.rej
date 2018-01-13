@@ -1,0 +1,53 @@
+diff a/server.js b/server.js	(rejected hunks)
+@@ -12,27 +12,33 @@ var fs = require("fs");
+ var path = require("path");
+ var request = require("request");
+ var app = express();
++var morgan = require("morgan");
++const logger = require("./logger");
+ const MongoClient = require("mongodb").MongoClient;
+ const test = require("assert");
+ const url = "mongodb://root:root@ds241677.mlab.com:41677/ankur_darwin";
+ const dbName = "ankur_darwin";
+-const imagemin = require("imagemin");
+-const imageminJpegtran = require("imagemin-jpegtran");
+-const imageminPngquant = require("imagemin-pngquant");
+ 
+ let imagesCollection = undefined;
+ MongoClient.connect(url, function(err, client) {
+   // Use the admin database for the operation
+   imagesCollection = client.db(dbName).collection("images");
+-  imagesCollection.find({}).toArray(function(error, arr) {
+-    console.log("data fetched successfully");
+-    console.log(arr);
+-  });
++  logger.info("DB initialized successfully");
+ });
+ 
+ var bodyParser = require("body-parser");
+-var Scraper = require("images-scraper"),
+-  google = new Scraper.Google();
++var Scraper = require("images-scraper");
++var google = new Scraper.Google();
++var imageGrayScale = require("image-grayscale");
++var globby = require("globby");
++
++// create a write stream (in append mode)
++var accessLogStream = fs.createWriteStream(path.join(__dirname, "./logs/access.log"), {
++  flags: "a"
++});
++
++// setup the logger
++app.use(morgan("combined", { stream: accessLogStream }));
+ 
+ app.use("/static", express.static(path.join(__dirname, "public")));
+ app.use(bodyParser.json());
+@@ -168,7 +196,7 @@ app.get("/search", function(req, res) {
+   }
+ 
+   //Google Scrape image using images-scraper node module
+-  
++
+   var keyword = req.query.term || "banana";
+   google
+     .list({
