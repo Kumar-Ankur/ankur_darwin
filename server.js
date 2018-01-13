@@ -10,7 +10,6 @@
 var express = require("express");
 var fs = require("fs");
 var path = require("path");
-var morgan =  require("morgan");
 var request = require("request");
 var app = express();
 const MongoClient = require("mongodb").MongoClient;
@@ -20,11 +19,6 @@ const dbName = "ankur_darwin";
 const imagemin = require("imagemin");
 const imageminJpegtran = require("imagemin-jpegtran");
 const imageminPngquant = require("imagemin-pngquant");
-
-//This tells express to log via morgan
-//and morgan to log in the "combined" pre-defined format
-
-app.use(morgan('combined'));
 
 let imagesCollection = undefined;
 MongoClient.connect(url, function(err, client) {
@@ -48,36 +42,21 @@ app.use(
   })
 );
 
-
 /**
  * @function to compress the images
- * @param {'String'} keyword Text Searched by User
+ * @param {'String'} keyword Text Searched by User 
  * @param {'String'} path to downloaded the image
  */
 
-function compressImage(keyword, path, callback) {
-  logger.info("Compressing image in: " + path);
-
-  globby([path + "/*.*"]).then(function(paths) {
-    // all@once
-    paths.forEach(function(file) {
-      imageGrayScale(file, {
-        logProgress: true,
-        dist: 'public/images/',
-        lwip: {
-          jpg: {
-            quality: 70
-          },
-          png: {
-            compression: 'fast',
-            interlaced: false,
-            transparency: 'auto'
-          },
-        }
-      });
-    });
+function compressImage(keyword, path) {
+  imagemin([path + "/*.*"], "public/images/" + keyword, {
+    plugins: [imageminJpegtran(), imageminPngquant({ quality: "65-80" })]
+  }).then(files => {
+    console.log(files);
+    //=> [{data: <Buffer 89 50 4e …>, path: 'build/images/foo.jpg'}, …]
   });
 }
+
 
 /**
  * Function to prevent from Cross Origin Resource Sharing
@@ -98,8 +77,8 @@ app.use(function(req, res, next) {
 });
 
 app.get("/search", function(req, res) {
+  // console.log();
   function getImage(url, filename, folder, callback) {
-    logger.info("Fetching image from url: " + url);
     try {
       if (!fs.existsSync(folder)) {
         fs.mkdirSync(folder);
@@ -110,7 +89,7 @@ app.get("/search", function(req, res) {
         timeout: 15000
       });
       req.on("error", function(err) {
-        logger.error(err);
+        console.log(err);
         callback();
       });
       req.on("response", function(res) {
@@ -125,7 +104,7 @@ app.get("/search", function(req, res) {
         callback(file);
       });
     } catch (error) {
-      logger.error(error);
+      console.log(error);
     }
   }
 
@@ -147,13 +126,9 @@ app.get("/search", function(req, res) {
         },
         function(err, data) {
           if (err) {
-            logger.error(err);
             return;
           }
           if (!data) {
-            logger.info(
-              "trying to create entry in DB: " + keyword + ": " + path
-            );
             imagesCollection.insertOne(
               {
                 keyword: keyword,
@@ -161,12 +136,9 @@ app.get("/search", function(req, res) {
               },
               function(error, data) {
                 if (error) {
-                  logger.error("Failed to insert: " + error);
+                  console.log("error");
                   return;
                 }
-                logger.info(
-                  "Inserted in DB successfully: " + keyword + ": " + path
-                );
                 insertInDBInSequence(arr, paths, pos + 1, keyword);
               }
             );
@@ -183,10 +155,9 @@ app.get("/search", function(req, res) {
               },
               function(err, data) {
                 if (err) {
-                  logger.error("Failed to insert: " + err);
                   return;
                 }
-                logger.info("inserting in " + keyword + ": " + path);
+                console.log("hello");
                 insertInDBInSequence(arr, paths, pos + 1, keyword);
               }
             );
@@ -197,7 +168,7 @@ app.get("/search", function(req, res) {
   }
 
   //Google Scrape image using images-scraper node module
-
+  
   var keyword = req.query.term || "banana";
   google
     .list({
@@ -209,10 +180,9 @@ app.get("/search", function(req, res) {
       }
     })
     .then(function(images) {
-      logger.info("first 15 results from google", images);
+      console.log("first 15 results from google", images);
       var count = 0;
-      var paths = [],
-        downloadedImages = [];
+      var paths = [], downloadedImages = [];
       images.forEach(function(image, i) {
         if (!fs.existsSync("./temp")) {
           fs.mkdirSync("./temp");
@@ -222,9 +192,9 @@ app.get("/search", function(req, res) {
         var path = keyword + "/" + i;
         try {
           getImage(image.thumb_url, i, folder, function(imagefile) {
-            logger.info("file downloaded at", imagefile);
+            console.log("file downloaded at", imagefile);
             if (imagefile) {
-              paths.push(imagefile.replace("./temp", "images"));
+              paths.push(imagefile.replace('./temp', 'images'));
               downloadedImages.push(image);
             }
             count++;
@@ -234,21 +204,25 @@ app.get("/search", function(req, res) {
             }
           });
         } catch (error) {
-          logger.error(error);
+          console.log(error);
         }
       });
       res.json(images);
       res.end();
     })
     .catch(function(err) {
-      logger.error(err);
+      console.log("err", err);
     });
+
+  // you can also watch on events
+  google.on("result", function(item) {
+    console.log("out", item);
+  });
 });
 
 app.get("/history", function(req, res) {
   imagesCollection.distinct("keyword", {}, function(err, data) {
     if (err) {
-      logger.error(err);
       res.json({
         success: false
       });
@@ -269,7 +243,6 @@ app.get("/detail/:search_term", function(req, res) {
     },
     function(err, data) {
       if (err) {
-        logger.error(err);
         res.json({
           success: false
         });
@@ -284,7 +257,7 @@ app.get("/detail/:search_term", function(req, res) {
 });
 
 app.listen(3030, function() {
-  logger.info("Server is running successfully at port 3030");
+  console.log("Server is running successfully at port 3030");
 });
 
 module.exports = app;

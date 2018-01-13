@@ -4,13 +4,11 @@
   "private": true,
   "dependencies": {
     "body-parser": "^1.18.2",
-    "express": "^4.16.2",
     "imagemin": "^5.3.1",
     "imagemin-jpegtran": "^5.0.2",
     "imagemin-pngquant": "^5.0.1",
     "images-scraper": "^2.0.11",
     "mongodb": "^3.0.1",
-    "morgan": "^1.9.0",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
     "react-masonry-component": "^6.0.2",
@@ -19,7 +17,6 @@
     "request": "^2.83.0"
   },
   "devDependencies": {
-    "morgan": "^1.9.0",
     "react-scripts": "1.0.17"
   },
   "scripts": {
@@ -27,7 +24,6 @@
     "backendstart": "node server.js",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject",
-    "start": "pm2 start app_starter.js; pm2 start ./node_modules/react-scripts/bin/react-scripts.js -- start"
+    "eject": "react-scripts eject"
   }
 }
